@@ -1,0 +1,134 @@
+\documentclass[11pt, oneside]{article}   	% use "amsart" instead of "article" for AMSLaTeX format
+\usepackage{geometry}                		% See geometry.pdf to learn the layout options. There are lots.
+\geometry{letterpaper}                   		
+\usepackage{natbib}
+%\setcitestyle{notesep = {, }, round, aysep = {}, yysep = {;}}
+\bibpunct{(}{)}{;}{a}{}{,}
+\usepackage{fullpage}
+\usepackage{setspace}
+\usepackage{graphicx}				
+\usepackage{amssymb}
+\usepackage[hang,flushmargin]{footmisc}
+\usepackage{pdflscape}
+\usepackage[utf8]{inputenc}
+\UseRawInputEncoding
+\title{\textbf{POLI 502 FA18: Homework 3}}
+\author{Sanghoon Park}
+\date{\today}					
+
+\begin{document}
+\maketitle
+
+\section{Exercise 1}
+Download the American National Election Studies 2012 time series data from the class Blackboard website,
+and load it as an R data frame called ``anes."\par
+The ANES has over 2,200 variables-a prime example of data for which you need to use a codebook. Even with the (included) user guide/codebook, it takes quite a while to familiarize oneself with the available
+ANES variables.
+\subsection{A: Recode the variable for post-election liberal/conservative self placement (a 7-point scale), such that middle of the road is set at 0, most liberal is -3, most conservative is 3, with intermediate values coded accordingly. All other values (haven't thought/don't know/refused) should be set as missing values.}
+
+<<Question1A, echo = TRUE, eval = TRUE, results = 'markup', message = TRUE, warning = TRUE, tidy = FALSE>>=
+library(plyr)
+library(foreign)
+library(ggplot2)
+anes <- read.dta("anes_timeseries_2012_Stata12.dta", convert.factors = TRUE)
+anes$libcpre_self.re <- revalue(anes$libcpre_self,
+                                c("-9. Refused" = NA, 
+                                  "-8. Don't know" = NA,
+                                  "-2. Haven't thought much about this" = NA, 
+                                  "1. Extremely liberal" = -3, 
+                                  "2. Liberal" = -2,
+                                  "3. Slightly liberal" = -1, 
+                                  "4. Moderate; middle of the road" = 0,
+                                  "5. Slightly conservative" = 1, 
+                                  "6. Conservative" = 2, 
+                                  "7. Extremely conservative" =3))
+@
+\subsection{B. Plot a histogram of the newly-created variable, with proper labels, etc.}
+For making proper labels, I checked the levels of the original variable(\verb+libcpre_self+) and made a new label variable named \verb+libcpre_self.label+. Also, I made \verb+libpre_self.re+ variable which I manipulated `-9', `-8', `-2' as missing data numerical(\verb+libpre_self.nu+).
+<<Question1B1, echo = TRUE, eval = TRUE, results = 'markup', message = TRUE, warning = TRUE, tidy = FALSE>>=
+libcpre_self.label <- c( "Extremely liberal", "Liberal", "Slightly liberal", 
+                         "Moderate", "Slightly conservative",
+                         "Conservative", "Extremely conservative")
+anes$libcpre_self.nu <- as.numeric(anes$libcpre_self.re)
+
+@
+Using \verb+ggplot2+ package, I plotted a histogram of self-placement ideology without missing data.
+<<Question1B2, out.width='3in', echo = TRUE, eval = TRUE, results = 'markup', message = TRUE, warning = TRUE, tidy = FALSE>>=
+ideology.self <- ggplot(data = na.omit(subset(anes, 
+                                              select = "libcpre_self.nu")), 
+                        aes(x=libcpre_self.nu))
+self.histogram <- ideology.self + geom_histogram(bins = 7) +
+  labs(title = "Histogram of Self-placement ideology") + 
+  scale_x_continuous("Liberal/conservative self-placement", 
+                     breaks = c(1:7), labels = c(libcpre_self.label)) + 
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+self.histogram
+@
+\subsection{C. Create more histograms of ideology, this time subset by race (specifically using the variable for summary respondent race and ethnicity group).}
+<<Question1C, echo = TRUE, eval = TRUE, results = 'markup', message = FALSE, warning = FALSE, tidy = FALSE>>=
+levels(anes$dem_raceeth_x)
+anes$race <- revalue(anes$dem_raceeth_x, c("-9. Missing" = NA))
+anes$race.nu <- as.numeric(anes$race)
+newanes <- anes[!is.na(anes$race), ]
+race.histogram <- ggplot(newanes, aes(x=libcpre_self.nu)) +
+  geom_histogram(bins = 7) +
+  labs(title = "Histogram of Self-placement ideology by racial groups") + 
+  scale_x_continuous("Liberal/conservative self-placement", 
+                     breaks = c(1:7), labels = c(libcpre_self.label)) + 
+  facet_grid(. ~ newanes$race, labeller = label_wrap_gen(multi_line = TRUE)) + 
+  theme(axis.text.x = element_text(angle = 90, hjust = 1))
+
+@
+\begin{figure}[ht]
+\includegraphics[width=1\textwidth]{figure/graph1.png}
+\label{figure:figure1}
+\end{figure}
+\subsection{D. Are all/any of the results you have produced representative of the population of interest? Explain why or why not.}
+According to the codebook of the ANES dataset, it uses oversample design ``in which there was one sample with selection probabilities adjusted to produce oversamples of blacks and Hispanics." ANES dataset used oversample design to highlight specific subgroups within population of interests, in this case; American. Even this sampling design does not draw samples completely random, its sample provides sufficient information about the population which we are interested in. Thus, the results I produced are representative enough for the population of interests.
+
+\subsection{E. Using your recoded ideology variable, and assuming the variable is representative of the US population, estimate the probability that you would find exactly 20 Extremely conservative in a sample 100 US citizens.(in my recorded ideology variable, the label is not a Strong Republicans, but Extremely conservative)}
+Assuming the variable is representative of the US population, I got the probability of the  Extremely conservative in the ANES data sample. Using this probability, I estimated the probability that 20  Extremely conservative in a sample 100 US citizens.
+<<Question1E, echo = TRUE, eval = TRUE, results = 'markup', message = FALSE, warning = FALSE, tidy = FALSE>>=
+table(anes$libcpre_self.nu)
+prop.table(table(as.numeric(anes$libcpre_self.re)))
+prop.ExtrCon<- as.numeric(prop.table(table(anes$libcpre_self.re))[7])
+prop.ExtrCon
+choose(100, 20)*prop.ExtrCon^20*(1-prop.ExtrCon)^(100-20)
+@
+\subsection{F. Again using your recoded ideology variable, and again assuming the variable is representative of the US population, estimate the probability that you would find the 20th Strong Republican when observing the 100th US citizen.}
+<<Question1F, echo = TRUE, eval = TRUE, results = 'markup', message = FALSE, warning = FALSE, tidy = FALSE>>=
+choose((100-1),(20-1))*prop.ExtrCon^20*(1-prop.ExtrCon)^(100-20)
+@
+
+\section{TEXTBOOK}
+\subsection{Exercise 3.16: 3.16 SAT scores. SAT scores (out of 2400) are distributed normally with a mean of 1500 and a standard deviation of 300. Suppose a school council awards a certificate of excellence to all students who score at least 1900 on the SAT, and suppose we pick one of the recognized students at random. What is the probability this student's score will be at least 2100? (The material covered in Section 2.2 would be useful for this question.)}
+<<Question316, echo = TRUE, eval = TRUE, results = 'markup', message = FALSE, warning = FALSE, tidy = FALSE>>=
+mu <- 1500
+std <- 300
+#Pr(X >= 1900) = Pr(z >= a1) = 1-Pr(z < a1)
+Z1 <- pnorm(1900, mu, std)
+Pr1900 <- 1 - Z1
+Z2 <- pnorm(2100, mu, std)
+Pr2100 <- 1 - Z2
+#For conditional probability,
+Answer <- Pr2100/Pr1900
+Answer
+@
+\subsection{Exercise 3.40: Playing darts. Calculate the following probabilities and indicate which probability distribution model is appropriate in each case. A very good darts player can hit the bull's eye (red circle in the center of the dart board) 65\% of the time. What is the probability that he}
+\subsubsection{(a) hits the bullseye for the 10th time on the 15th try?}
+<<Question340a, echo = TRUE, eval = TRUE, results = 'markup', message = FALSE, warning = FALSE, tidy = FALSE>>=
+p <- 0.65
+n <- 15
+k <- 10
+2002*(p)^k*(1-p)^(n-k) #the negative binomial distribution(k=10, n=15)
+@
+\subsubsection{(b) hits the bullseye 10 times in 15 tries?}
+<<Question340b, echo = TRUE, eval = TRUE, results = 'markup', message = FALSE, warning = FALSE, tidy = FALSE>>=
+3003*(p)^k*(1-p)^(n-k) # the binomial distribution probability(k=10, n=15) 
+@
+\subsubsection{(c) hits the first bullseye on the third try?}
+<<Question340c, echo = TRUE, eval = TRUE, results = 'markup', message = FALSE, warning = FALSE, tidy = FALSE>>=
+((p)^1)*((1-p)^(3-1)) #the negative binomial distribution (k=1, n=3)
+@
+\end{document}  

@@ -1,0 +1,227 @@
+\documentclass[11pt, oneside]{article}   	% use "amsart" instead of "article" for AMSLaTeX format
+\usepackage{geometry}                		% See geometry.pdf to learn the layout options. There are lots.
+\geometry{letterpaper}                   		
+\usepackage{natbib}
+%\setcitestyle{notesep = {, }, round, aysep = {}, yysep = {;}}
+\bibpunct{(}{)}{;}{a}{}{,}
+\usepackage{fullpage}
+\usepackage{setspace}
+\usepackage{graphicx}				
+\usepackage{amssymb}
+\usepackage[hang,flushmargin]{footmisc}
+\usepackage{pdflscape}
+\usepackage[utf8]{inputenc}
+\UseRawInputEncoding
+\title{\textbf{POLI 502 FA18: Homework 1 Resubmit}}
+\author{Sanghoon Park}
+\date{\today}					
+
+\begin{document}
+\maketitle
+\section{Exercise 1}
+Given two conditions by hints, we have 24 total subjects of each gender. In the first hint, it shows 21 men and 14 men were recommended for promotion. Assume that, we have universal $\frac{Total\:promoted}{Total\:subjects} = \frac{35}{48}$ probability of promotion which rounded up to the first digit after the decimal point. Thus, if there were no discrimination, we can say each gender would have same probability of promotion, $\frac{35}{48}$.
+To simulate it, We are able to write codes to sample randomly in each gender with universal promotion probability. This randomly sampled binary variable has \verb+1+ and \verb+0+. The value, \verb+1+ of each variable means he(she) has been recommended to be promoted.
+To do sampling for one million times, I made an object named \verb+assign.size+ which has the value 1,000,000. Also, I set the random seed equal to the year and month of my birthday(198912).
+<<Question1A>>=
+assign.size <- 1000000
+set.seed(198912)
+assign1 <- rep(NA, assign.size)
+for (x in 1:assign.size) {
+  MP <- rbinom(24, 1, 35/48)
+  WP <- rbinom(24, 1, 35/48)
+  assign1[x] <- (sum(MP) - sum(WP))/24
+}
+@
+With running these codes, I can get a million of values which show probabilities of difference in promotion numbers defined as number of men promoted minus no. women promoted. I assigned them into \verb+assign1+ and made a histogram of it. The histogram would show the distribution of probabilities of difference in proportion of men versus women recommended for promotion. Then, I created a subfolder titled, \verb+figures+ to save the the histogram as a pdf file.
+<<Question1B, eval=FALSE>>=
+pdf("figures/assignment_Q1.pdf", width=8, height=6)
+hist(assign1, xlab = "Margin", main = NULL)
+dev.off()
+@
+\begin{figure}[ht]
+\includegraphics[width=1\textwidth]{C:/Users/phere/Documents/assignment_Q1.pdf}
+\caption{The distribution of probability of gender difference in proportion recommended for promotion \label{figure:figure1}}
+\end{figure}
+\newpage
+\section{Exercise2}
+According to the direction, with the one million repeated simulation data, I have extracted and estimated the probability that the gender difference in proportion could be greater than or equal to 0.3. Also, as Exercise2 mentioned, we only need to consider the case with more men recommended.
+First, using the result in \#1, I created a table that shows the probability of gender difference in the outcome. I added all probabilities that are larger than 0.3.
+<<Question2A>>=
+table(assign1[assign1 >= 0.3])
+@
+Next, I calculated the probability of the number of times it occurs and divided by one million. The code of below means that I counted all occurances of disparity in favor of men, and divide by number of random draws.
+<<Question2B>>=
+sum(table(assign1[assign1 >= 0.3]))/assign.size
+@
+This result implies that the probability of occurance of which the gender difference probability is greater than 3.0 is 0.007049. We start this question with one sample. However, with one million simulation, we can think the sample we observed at first was extreme case. Therefore, I think it is difficult to convince that gender discrimination occurs systematically. The sample we obtained may be a coincidence.
+
+\section{Exercise3}
+First, I loaded the The Behavioral Risk Factor Surveillance System(hereafter \verb+BRFSS+) data.
+<<Question3>>=
+source("http://www.openintro.org/stat/data/cdc.R")
+@
+\subsection{Answer \textit{A}}
+Next, I saw the structure of the \verb+BRFSS+ data with the code.
+<<Question3A>>=
+str(cdc)
+@
+The number of the cases is 20,000 and the number of the variables is 9. Also, the result shows that \verb+genhlth+ is a discrete, ordinal variable and \verb+exerany+, \verb+hlthplan+, \verb+smoke100+, and \verb+gender+ are discrete, categorical variables. \verb+height+, \verb+weight+, \verb+wtdesire+, \verb+age+ are numerical variables.
+\newpage
+\subsection{Answer \textit{B}}
+  The code below shows the numerical summary for \textit{height} and \textit{age}.
+  <<Question3B_1>>=
+  summary(cdc$height)
+  summary(cdc$age)
+  @ 
+  Interquartile range for each variable, \textit{height} and \textit{age}, is 6 and 26.
+  <<Question3B_2>>=
+  IQR(cdc$height)
+  IQR(cdc$age)
+  @
+  The relative frequency distribution for \textit{gender} and \textit{exerany} is like below. For getting the ``relative" frequency distribution of gender, I made a table of gender and created a barplot. I need relative frequency, I divided the gender by total observation. First, with the table, I can get the number of male is 9569 and With the barplot, I can get a relative frequency distribution of gender.
+  I repeated same process to get relative frequency distribution of the sample reporting exercising.
+  <<Question3B_3, out.width='3in'>>=
+  gender <- table(cdc$gender)
+  gender
+  barplot(gender/20000)
+  exerany=table(cdc$exerany)
+  barplot(exerany/20000)
+  @
+\subsection{Answer \textit{C}}
+<<Question3C>>=
+BRFSS.23.S <- subset(cdc, age < 23 & smoke100==1)
+str(BRFSS.23.S)
+@
+\subsection{Answer \textit{D}}
+<<Question3D, out.width='4in'>>=
+cdc$age23.smoke100 <- ifelse(cdc$age < 23 & cdc$smoke100==1, 1, 0)
+@
+\subsection{Answer \textit{E}}
+<<Question3E_1, out.width='3in'>>=
+plot(cdc$weight, cdc$wtdesire, xlab="Current weight", 
+     ylab="Desired weight", 
+     main="Plot of current weight and desired weight")
+@
+\newpage
+<<Question3E_2, out.width='3in', warning=FALSE>>=
+library(ggplot2)
+g <- ggplot(cdc, aes(cdc$weight, cdc$wtdesire))
+g + labs(x = "Current weight", y = "Desired weight", 
+         title="Plot of current weight and desired weight") + geom_point()
+@
+I presumed current weight as an explanatory variable. I think a person would desire their future weight based on their current. For instance, if someone considers his/her current weight is too heavy, then he/she would expect to lose weight. The two variables are related politively. However, more points are located under the 45 degree line. It means that relatively large number of the responsors responded current weight greater.
+
+\subsection{Answer \textit{F}}
+<<Question3F>>=
+cdc$wdiff <- cdc$weight-cdc$wtdesire
+str(cdc$wdiff)
+@
+
+\subsection{Answer \textit{G}}
+The level of measurement of \verb+wdiff+ is discrete, numerical and its unit is pound. If \verb+wdiff+ equals to 0, it means the person's current weight and desired weight are identical. If \verb+wdiff+ is negative, the desired weight would be greater than current one and vice versa.
+\newpage
+\subsection{Answer \textit{H}}
+<<Question3H_1, out.width='3in', message=FALSE>>=
+ggplot(cdc, aes(x=wdiff)) + geom_histogram()
+@
+<<Question3H_2>>=
+summary(cdc$wdiff)
+sd(cdc$wdiff)
+@
+The mean of the difference between current and desired weight is 14.59. The median of the data is 10.00. Mean is more sensitive to the extreme value than median. According to the histogram, the distribution of \verb+wdiff+ is right skewed shape. Also, the standard deviation shows each observation is far from the mean by around 24.04 pound on average.
+With the histogram, we can find that most of people feel their current weight is similar to the desired. However, the tendency shows that people is more dissatisfactory to their current weight.
+\newpage
+\section{Exercise4}
+\subsection{Answer \textit{A}}
+\subsubsection{COW National Trade 4.0 (part of the COW Trade 4.0)}
+
+<<Question4A_1>>=
+download.file(url = "http://correlatesofwar.org/data-sets/bilateral-trade/cow_trade_4.0", 
+              destfile = "COW_Trade_4.0.zip", mode='wb')
+unzip("COW_Trade_4.0.zip", exdir = getwd())
+COWnatlTrade <- read.csv(file = "COW_Trade_4.0/National_COW_4.0.csv")
+@
+\subsubsection{Participant-level MID data 4.2}
+<<Question4A_2>>=
+download.file(url = "http://correlatesofwar.org/data-sets/MIDs/militarized-interstate-disputes-4-2/at_download/file/", destfile = "MID-level.zip", mode='wb')
+unzip("MID-level.zip", exdir = getwd())
+part.level <- read.csv(file = "MIDB_4.2.csv")
+@
+\subsubsection{State-year Direct Contiguity Data 3.2}
+<<Question4A_3>>=
+download.file(url = "http://correlatesofwar.org/data-sets/direct-contiguity/direct-contiguity-v3-2/at_download/file", destfile = "DirectContiguity320.zip", mode='wb')
+unzip("DirectContiguity320.zip", exdir = getwd())
+direct.contig <- read.csv(file = "DirectContiguity320/contdirs.csv")
+@
+\subsection{Answer \textit{B}}
+<<Question4A_4, results='hide'>>=
+str(COWnatlTrade) # level of analysis: state
+str(part.level) # level of analysis: state
+str(direct.contig) #level of analysis: state
+@
+The three dataset consider states as units of analysis. Thus, the unit of analysis of the dataset are same.
+
+\subsection{Answer \textit{C}}
+<<Question4B, warning=FALSE, message=FALSE, echo=FALSE>>=
+library(dplyr)
+library(plyr)
+@
+For merging the three datasets, first, I decided to rename the criteria for merging. \verb+ccode+ means COW country code. As the Direct Contiguity dataset has \verb+stateno+ which means state number and it is as same as \verb+ccode+. I changed the variable name, \verb+stateno+ into \verb+ccode+. Then, I checked the other dataset called participant-level MID dataset. It has time variable named \verb+styear+ which is same with \verb+year+ of other datasets. So, I renamed the styear.
+For this process, every dataset has same unit id(\verb+ccode+) and time(\verb+year+).
+<<>>=
+names(direct.contig)[1] <- "ccode"
+names(part.level)[7] <- "year"
+@
+I made a new data fram named \verb+statelevel+. For covering the three datasets, I checked the structures of them(Question 4B). Since the Direct Contiguity dataset has the largest country-unit(217) and the longest year span(201), I decided to merge the datasets based on it.
+First I combined Direct Contiguity dataset with participant-level MID dataset and made a new data frame, \verb+statelevel+. Then, I merged \verb+statelevel+ with \verb+COW National Trade 4.0+ dataset.
+<<>>=
+length(unique(direct.contig$ccode))
+length(unique(part.level$ccode))
+length(unique(COWnatlTrade$ccode))
+length(unique(direct.contig$year))
+length(unique(part.level$year))
+length(unique(COWnatlTrade$year))
+@
+<<results='hide'>>=
+statelevel <- merge(x = direct.contig, y = COWnatlTrade, by = c("ccode", "year"), all=TRUE)
+statelevel <- merge(x = statelevel, y=part.level,  by = c("ccode", "year"), all=TRUE)
+str(statelevel)
+@
+Regarding MIDs, I created a new variable to check whether at leat one MID originates in a given state-year. I coded \verb+1+ if it originates, and \verb+0+ otherwise with \verb+version.y+ variable which is only included in MIDs dastaset.
+<<>>=
+statelevel$midcheck <- ifelse(!is.na(statelevel$version),1,0)
+@
+
+\section{From the Text}
+\subsection{Exercise 1.2}
+\subsubsection{(a)} What percent of patients in the treatment group experienced a significant improvement in symptons? What percent in the control group?
+<<>>=
+(66/85)*100 #percent
+(65/81)*100 #percent
+@
+77.65 percent of patients in the treatment group experienced a significant improvement in symptoms while 80.25 percent of control group did.
+\subsubsection{(b)}
+Based on the finding in part (a), control group which was treated with the placebo seems more effective for sinusitis.
+\subsubsection{(c)}
+I think the difference of two results are not enough to convince whether there is a actual difference in the improvement rates or not. Thus, I think the observed difference might be due to chance.
+\subsection{Exercise 1.10.}
+\subsubsection{(a)}
+The population of interest is male and female between the ages of 5 and 15. We cannot know the exact total number of the population. However, the sample size is 160 and the sample used in the experiments incudes children between the ages of 5 and 15.
+\subsubsection{(b)}
+Most of all, I don't know whether they sampled the 160 children randomly or not. It is the most important point. If they select their sample based on strongly biased criteria(e.g. classmates, same village), the result should not be generalized. If not, the study might e generalized but it would be difficult to say in confident as it has small sample. Also, the researched observed the differences in the ceating rates between the groups, it might be used to make a causal relationships.
+\subsection{1.14}
+\begin{enumerate}
+  \item Percentage of all videos on YouTube that are cat videos: \textit{\textbf{Population parameter}}
+  \item 2\%: \textit{\textbf{Sample statistics}}
+  \item A video in your sample: \textit{\textbf{Observation}}
+  \item Whether or not a video is a cat video: \textit{\textbf{Variable}}
+\end{enumerate}
+\subsection{1.15}
+\begin{enumerate}
+  \item Explanatory: Percent with Bachelor's degree, Response: Per capita income (in \$1,000)
+  \item The population percent of bachelor's degree and per capita income are in posite relations. Also, there is several unusual observations but the trend goes with positive way.
+  \item If we think the (a) as a causal link(explanatory-response), we can say the more people get bachelor's degree, the more they earn. But we didn't control the effects of other factors which can affect reponse variable, it is difficult to conclude the causal relationship for sure.
+\end{enumerate}
+\subsection{1.34}
+First, to conduct an experiment, I would select a sample of students randomly. Also, I would divide them into three groups randomly. Then, each group gets a treatment one of three treatment: No music/Instrumental Music/Lyrics. And all students of three groups would take a same examination. We can compare the test results with each group.
+\end{document}  

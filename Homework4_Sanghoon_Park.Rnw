@@ -1,0 +1,150 @@
+\documentclass[11pt, oneside]{article}   	% use "amsart" instead of "article" for AMSLaTeX format
+\usepackage{geometry}                		% See geometry.pdf to learn the layout options. There are lots.
+\geometry{letterpaper}                   		
+\usepackage{natbib}
+%\setcitestyle{notesep = {, }, round, aysep = {}, yysep = {;}}
+\bibpunct{(}{)}{;}{a}{}{,}
+\usepackage{fullpage}
+\usepackage{setspace}
+\usepackage{graphicx}				
+\usepackage{amssymb}
+\usepackage[hang,flushmargin]{footmisc}
+\usepackage{pdflscape}
+\usepackage[utf8]{inputenc}
+\UseRawInputEncoding
+\title{\textbf{POLI 502 FA18: HW4}}
+\author{Sanghoon Park}
+\date{\today}					
+
+\begin{document}
+\maketitle
+
+\section*{Exercise 1}
+For this exercise, use the WDI data we downloaded during our Chapter 4 R tutorial in class. As in class, we will assume that each variable represents a population, ignoring repeated measurement over time, etc.
+
+\subsection*{A. First, set your random seed equal to the month and day of your birthday (mine would be 119, for January 19). Then, using a for() loop, take 100 samples, each of 70 observations, for the tetanus vaccination variable, storing as vectors all sample properties needed to calculate 99\% confidence intervals for each sample.}
+
+<<eval=TRUE, echo=TRUE, message = FALSE, warning = FALSE, tidy = FALSE, include = TRUE>>=
+library(WDI)
+WDI.data <- WDI(country="all", 
+                indicator=c("SH.VAC.TTNS.ZS"), start=1995, end=2005)
+WDIsearch(string="SH.VAC.TTNS.ZS", field='indicator')
+WDI.data$tetanus.vaccination <- WDI.data$SH.VAC.TTNS.ZS
+
+set.seed(1224)
+sampling.size <- 100
+mean.pop.100 <- rep(NA, 100)
+lower.pop.100 <- rep(NA, 100)
+upper.pop.100 <- rep(NA, 100)
+
+for(x in 1:sampling.size) {
+  samp.pop <- sample(WDI.data$tetanus.vaccination, 70)
+  mean.pop.100[x] <- mean(samp.pop, na.rm = TRUE)
+  lower.pop.100[x] <- mean.pop.100[x] -
+    (2.58 * (sd(samp.pop, na.rm = TRUE)/sqrt(length(samp.pop))))
+  upper.pop.100[x] <- mean.pop.100[x] +
+    (2.58 * (sd(samp.pop, na.rm = TRUE)/sqrt(length(samp.pop))))
+}
+sd.pop.100 <- sd(samp.pop, na.rm = TRUE)
+@
+\subsection*{B. Graph each sample mean with 99\% confidence intervals using the ggplot2 package (similar to what we did in class). Also graph a line indicating the population mean. Remember to include proper labels.}
+<<eval=TRUE, echo=TRUE, fig.width=6, fig.height=3, message = TRUE, warning = TRUE, tidy = FALSE, include = TRUE>>=
+estimates.df.100 <- as.data.frame(cbind(lower.pop.100, 
+                                       mean.pop.100, 
+                                       upper.pop.100))
+estimates.df.100$sample.no <- c(1:100)
+library(ggplot2)
+estimates.df.100$outside <- ifelse(estimates.df.100$lower.pop.100 > 
+                                    mean(WDI.data$tetanus.vaccination,
+                                         na.rm = TRUE) | 
+                                    estimates.df.100$upper.pop.100 < 
+                                    mean(WDI.data$tetanus.vaccination, 
+                                         na.rm = TRUE), 1, 0)
+ggplot(data = estimates.df.100, aes(x = sample.no,
+                                    color = as.factor(outside))) +
+  geom_pointrange(aes(y = mean.pop.100, ymin = lower.pop.100,
+                      ymax = upper.pop.100)) + 
+  geom_hline(data = WDI.data, 
+             aes(yintercept = mean(tetanus.vaccination, na.rm = TRUE))) +
+  theme_bw() + 
+  scale_color_manual(name = "", values=c("#9999CC", "#CC6666")) +
+  theme(legend.position="none") +
+  xlab("Sample number") + ylab("Estimates") + 
+  labs(title = "Sample means for Tetanus Vaccination, 
+       with 99% Confidence Intervals (N=70)")
+@
+
+\subsection*{C. How many confidence intervals appear not to overlap the population mean? How does this finding relate to what we would expect to see on average given the Central Limit Theorem? Explain.}
+
+Among the one hundered confidence intervals, six confidence intervals do not contain the population mean. According to the ``Central Limit Theorem", the distribution of the sample mean is approximated by normal distribution. Thus, on average, the sample means would be distributed by normal  model of which the mean is population mean. As we repeat this process again and again, and increase the size of sample, the standard error(standard deviation of sample means) would decrease. We might get ninty-nine confidence interval containing population mean on average.
+
+\subsection*{D. Repeat parts A and B, this time using a sample size of 10 rather than 70. How do results differ (or do they)?}
+<<eval=TRUE, echo=TRUE, message = TRUE, warning = TRUE, tidy = FALSE, include = TRUE>>=
+set.seed(1224)
+sampling.size <- 100
+mean.pop.10 <- rep(NA, 100)
+lower.pop.10 <- rep(NA, 100)
+upper.pop.10 <- rep(NA, 100)
+for(x in 1:sampling.size) {
+  samp.pop2 <- sample(WDI.data$tetanus.vaccination, 10)
+  mean.pop.10[x] <- mean(samp.pop2, na.rm = TRUE)
+  lower.pop.10[x] <- mean.pop.10[x] - 
+    (2.58 * (sd(samp.pop2, na.rm = TRUE)/sqrt(length(samp.pop2))))
+  upper.pop.10[x] <- mean.pop.10[x] + 
+    (2.58 * (sd(samp.pop2, na.rm = TRUE)/sqrt(length(samp.pop2))))
+}
+sd.pop.10 <- sd(samp.pop2, na.rm = TRUE)
+estimates.df.10 <- as.data.frame(cbind(lower.pop.10, mean.pop.10, upper.pop.10))
+estimates.df.10$sample.no <- c(1:100)
+estimates.df.10$outside <- ifelse((estimates.df.10$lower.pop.10 > 
+                                    mean(WDI.data$tetanus.vaccination, 
+                                         na.rm = TRUE) | 
+                                    estimates.df.100$upper.pop.10 <
+                                     mean(WDI.data$tetanus.vaccination, 
+                                          na.rm = TRUE)), 1, 0)
+@
+
+As I make the size of sample from 70 to 10, the standard error increases, and I get twenty one confidence intervals which do not contain population mean. It is fifteen confidence intervals more than previous sampling which the size of sample was 70.
+
+<<eval=TRUE, echo=TRUE, fig.width=6, fig.height=3, message = TRUE, warning = FALSE, tidy = FALSE, include = TRUE>>=
+ggplot(data = estimates.df.10, aes(x = sample.no, 
+                                   color = as.factor(outside))) +
+  geom_pointrange(aes(y = mean.pop.10, 
+                      ymin = lower.pop.10, 
+                      ymax = upper.pop.10)) + 
+  geom_hline(data = WDI.data, 
+             aes(yintercept = mean(tetanus.vaccination, na.rm = TRUE))) +
+  theme_bw() + 
+  scale_color_manual(name = "", values=c("#9999CC", "#CC6666")) +
+  theme(legend.position="none") +
+  xlab("Sample number") + ylab("Estimates") + 
+  ggtitle("Sample means for Tetanus Vaccination, 
+          with 99% confidence intervals (N=10)")
+@
+
+\section*{Additional exercises}
+\subsection*{A. Explain the joke in the xkcd comic that follows on the next page (credit to Randall Munroe).}
+In the xkcd comic, the man only reports the statistically significant link between green jelly beans and acne. First, this kind of report is not appropriate that it ignores the other results which were not statistically significant. Also, although one color of jelly beans are related to acne, the statistical significance and practical(substantial) significance are not same. I think the comic criticizes a issue of cherry picking in the research using statistical methods.
+
+\subsection*{B. Diez et al. Chapter 4 Exercises: 4.16, 4.22.}
+\subsubsection*{4.16 Age at first marriage, Part I. The National Survey of Family Growth conducted by the Centers for Disease Control gathers information on family life, marriage and divorce, pregnancy, infertility, use of contraception, and men's and women's health. One of the variables collected on this survey is the age at first marriage. The histogram below shows the distribution of ages at first marriage of 5,534 randomly sampled women between 2006 and 2010. The average age at first marriage among these women is 23.44 with a standard deviation of 4.72. Estimate the average age at first marriage of women using a 95\% confidence interval, and interpret this interval in context. Discuss any relevant assumptions.}
+
+First, we have to check whether the distribution of age at first marrage meets the conditions of central limit theorem.
+\begin{itemize}
+  \item Independence: As the 5,534 women are sampled randomly, we can say sampled observations must be independent. Also, since the population is about national level, we can say the sample(5,534 women) is less than 10\% of the populaiton.
+  \item Sample size/skew: The sample size of 5,534 is larger than 30 and we can say the sampling distribution of the mean would be approximately normal according to central limit theorem.
+\end{itemize}
+Next, considering the conditions, we can calculate the z-score for the confidence level of 95\% with normal probablity($z_{95\%}$=1.96).
+<<>>=
+x.bar <- 23.44
+s <- 4.72
+n <- 5534
+z.95 <- 1.96
+se = s/sqrt(n) #standard error
+lower <- x.bar - z.95*se
+upper <- x.bar + z.95*se
+ci <- as.data.frame(cbind(lower, upper))
+ci
+@
+Thus, we can state that we are 95\% confident that the age of women at first marrige would be between 23.31564 and 23.56436 years.
+\end{document}  

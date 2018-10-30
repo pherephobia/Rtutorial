@@ -1,0 +1,198 @@
+\documentclass[11pt, oneside]{article}   	% use "amsart" instead of "article" for AMSLaTeX format
+\usepackage{geometry}                		% See geometry.pdf to learn the layout options. There are lots.
+\geometry{letterpaper}                   		
+\usepackage{natbib}
+%\setcitestyle{notesep = {, }, round, aysep = {}, yysep = {;}}
+\bibpunct{(}{)}{;}{a}{}{,}
+\usepackage{fullpage}
+\usepackage{setspace}
+\usepackage{graphicx}				
+\usepackage{amssymb}
+\usepackage[hang,flushmargin]{footmisc}
+\usepackage{pdflscape}
+\usepackage[utf8]{inputenc}
+\UseRawInputEncoding
+\title{\textbf{POLI 502 FA18: Homework 2}}
+\author{Sanghoon Park}
+\date{\today}					
+
+\begin{document}
+\maketitle
+\section{Exercise 1}
+<<Exercise1, warning=FALSE, message=FALSE>>=
+# Install and load World Development Indicators package
+install.packages("WDI", repos="http://cran.us.r-project.org")
+library(WDI)
+# Load a data frame using 5 WDI variables over 10 years
+WDI.data <- WDI(country="all", indicator=c("IQ.CPA.GNDR.XQ",
+                                           "IC.BUS.EASE.XQ",
+                                           "SP.DYN.CBRT.IN", 
+                                           "AG.LND.AGRI.K2", 
+                                           "AG.LND.AGRI.ZS"), 
+                start=1995, end=2005)
+@
+\subsection{A: Aside from the ID variables (i.e., iso code, country, and year), explain what each variable is capturing, and its level of measurement (if numerical, explain whether it is discrete or continuous, and whether it is a ratio variable). Hint: You will need the codebook. Googling the variable name takes you right to a useful webpage.}
+\subsubsection{IQ.CPA.GNDR.XQ(CPIA gender equality rating): ordinal}
+\subsubsection{IC.BUS.EASE.XQ(Ease of doing business index): ordinal}
+\subsubsection{SP.DYN.CBRT.IN(Birth rate, crude (per 1,000 people)): numerical, continuous, ratio}
+\subsubsection{AG.LND.AGRI.K2(Agricultural land (sq. km)): numeric, continuous}
+\subsubsection{AG.LND.AGRI.ZS()Agricultural land (percent of land area): numeric, continuous, ratio}
+
+\subsection{B. Although there is a variable called ``country," you might notice that it includes regions as well as countries. Subset the data to exclude all regions, retaining only countries. Hint: You might want to create a table of the "country" variable - show the code but do not include the table output with your completed assignment}
+<<Question1B, eval=FALSE>>=
+wdi_data <- WDI_data
+countries=wdi_data[[2]]
+countryregion = as.data.frame(countries)
+purecountry <- countryregion$region != "Aggregates"
+countries_df <- countryregion[purecountry,]
+WDI.data = subset(WDI.data, country %in% countries_df$country)
+@
+\subsection{C. If you were to point to a random spot on a map of Honduras in 1998, what is the probability that you would be pointing to an area in which the land (in the actual country) is arable?}
+<<Question1C>>=
+HN1998 <- as.numeric(subset(WDI.data, 
+                            WDI.data$country=="Honduras" & WDI.data$year==1998,
+                            select='AG.LND.AGRI.ZS')/100)
+HN1998
+@
+The probability that I would be pointing to an area in which the land in Honduras in 1998 is areable is 0.303423
+
+\subsection{D. If you were to point to three random spots on a map of Albania in 2004, what is the probability that all three spots would represent arable land?}
+<<Question1D>>=
+AL2004 <- as.numeric(subset(WDI.data, 
+                            WDI.data$country=="Albania" & WDI.data$year==2004,
+                            select='AG.LND.AGRI.ZS')/100)
+AL2004^3
+@
+The probability that all three spots would present arable land for three chances is 0.06866365. It is the probablity that my three choices all represent arable land in Albania in 2004.
+
+\subsection{E. If you were to point to six random spots on a map of Chad in 2002, what is the probability that at least one spot would represent arable land?}
+<<Question1E>>=
+CHAD02 <- as.numeric(subset(WDI.data, 
+                            WDI.data$country=="Chad" & WDI.data$year==2002, 
+                            select='AG.LND.AGRI.ZS')/100)
+1-((1-CHAD02)^6)
+@
+I only excluded the probability that all of the six chances present non-arable land in Chad in 2002 from the 1. So the probablity that at least one spot would represent arable land of Chad in 2002 is 0.003359001
+
+\section{Exercise 2}
+\subsection{A. Go to http://correlatesofwar.org and download the appropriate data necessary to create data frames for:\\1. inter-state war data from the COW war data 4.0\\2. dyadic trade data from the COW trade data 4.0}
+<<Question2A>>=
+# 1. inter-state war data from the COW war data 4.0
+download.file(url = "http://correlatesofwar.org/data-sets/COW-war/inter-state-war-data/at_download/file", 
+              destfile = "Inter-StateWarData_v4.0.csv", mode='wb')
+InterStateWar <- read.csv(file = "Inter-StateWarData_v4.0.csv", na = c(-9))
+# 2. dyadic trade data from the COW trade data 4.0
+download.file(url = "http://correlatesofwar.org/data-sets/bilateral-trade/cow_trade_4.0", 
+              destfile = "COW_Trade_4.0.zip", mode='wb')
+unzip("COW_Trade_4.0.zip", exdir = getwd())
+Dytrade <- read.csv(file = "COW_Trade_4.0/Dyadic_COW_4.0.csv", na = c(-9))
+@
+\subsection{B. Create a new data frame that is a subset of dyadic trade data including only dyads in which at least one state is located in Europe (ccode between 200 and 399).}
+<<Question2B>>=
+Europe <- subset(Dytrade, 
+                 (ccode1 >=200 & ccode1<400) | (ccode2 >=200 & ccode2<400))
+
+@
+\subsection{C. Create a new data frame that is a subset of the inter-state war data including only wars that are fought, at least in part, in Europe}
+<<Question2C>>=
+Fight <- subset(InterStateWar, WhereFought %in% c(2, 11, 12, 14, 15, 19))
+@
+\subsection{D. Using the subset data frames from parts B. and C., create a new data frame where the unit of observation is the year. It should include the year range that is covered in both the dyadic trade and inter-state war data frames. It should have variables identifying 1) the mean dyadic trade (of dyads including at least one European state) and 2) the count of wars that begin (for the first time, and which are fought, at least in part, in Europe).}
+
+<<Question2D, warning=FALSE>>=
+library(plyr)
+Europe.d1 <- Europe[, c(1,2,3, 6, 7)]
+Fight.d1 <- Fight[, c(1, 4, 9)]
+Europe.year <- ddply(Europe.d1, .(year),
+                     summarize, meantrade = mean(sum(flow1, flow2, na.rm = TRUE)))
+Fight.year <- ddply(Fight.d1, .(StartYear1),
+                    summarize, sumwar = length(unique(WarNum)))
+yearbase <- merge(x = Fight.year, y = Europe.year, 
+                  by.x = "StartYear1", by.y = "year", all = TRUE)
+@
+\subsection{E. Using the new data frame from part D., Create a scatterplot where the x axis represents the (natural) log of mean dyadic trade, while the y axis represents the count of European war onsets.}
+<<Question2E, warning=FALSE>>=
+library(ggplot2)
+g <- ggplot(yearbase, 
+            aes(x=log(yearbase$meantrade), y=yearbase$sumwar))
+g + geom_point() + labs(x = "The log of mean dyadic trade", 
+                        y = "The count of European war")
+@
+\section{From the Text}
+\subsection{Exercise2.2 The game of roulette involves spinning a wheel with 38 slots: 18 red, 18 black, and 2 green. A ball is spun onto the wheel and will eventually land in a slot, where each slot has an equal chance of capturing the ball.}
+\subsubsection{a. You watch a roulette wheel spin 3 consecutive times and the ball lands on a red slot each time. What is the probability that the ball will land on a red slot on the next spin?}
+<<Question322a>>=
+prop.red <- 18/38
+prop.red
+@
+The probablity that the ball will land on a red slot on the next spin is 0.4736842.
+\subsubsection{b. You watch a roulette wheel spin 300 consecutive times and the ball lands on a red slot each time. What is the probability that the ball will land on a red slot on the next spin?}
+<<Questions322b>>=
+prop.red2 <- 18/38
+prop.red2
+@
+The probablility that the ball will land on a red slot on the next time with 300 consecutive times is also 0.4736842.
+\subsubsection{c. Are you equally confident of your answers to parts (a) and (b)? Why or why not?}
+Since the roulette wheel has 18 red of 38 slots, the answers of (a) and (b) are equally confident regardless how many times we spin the roulette.
+\subsection{Exercise2.6 If you roll a pair of fair dice, what is the probability of}
+\subsubsection{a. getting a sum of 1?}
+Each dice has minimum value, 1. So there is no way to get a sum of 1 with two dices.
+  <<Question326a>>=
+  0/36
+  @
+\subsubsection{b. getting a sum of 5?}
+The way to get a sum of 5 with a pair of dice is getting (1,4), (2,3), (3,2), (4,1). So, the total options of a pair of two dice is 36(6$\times$6). The probability is 0.111111.
+  <<Question326b>>=
+  4/36
+  @
+\subsubsection{c. getting a sum of 12?}
+The only way to get a sum of 12 is that each dice shows 6. Thus the probability is 
+  <<Question326c>>=
+  1/36
+  @
+
+\subsection{Exercise2.17 Global warming. A 2010 Pew Research poll asked 1,306 Americans ``From what you've read and heard, is there solid evidence that the average temperature on earth has been getting warmer over the past few decades, or not?". The table below shows the distribution of responses by party and ideology, where the counts have been replaced with relative frequencies}
+\subsubsection{a. Are believing that the earth is warming and being a liberal Democrat mutually exclusive?}
+No, Earth is warming and Liberal Democrat are not mutuaaly exclusive.
+\subsubsection{b. What is the probability that a randomly chosen respondent believes the earth is warming or is a liberal Democrat?}
+Probablity of Earth is Warming of Liberal Democrat+ is the sum of probablity of Earth is Warming and Liberal democrat minus the probablity of Earth is warming and Liberal democrat. Thus, the probability is 0.62.
+<<Question3217b>>=
+Pr.WorLD <- 0.6+0.2-0.18
+Pr.WorLD
+@
+\subsubsection{c. What is the probability that a randomly chosen respondent believes the earth is warming given that he is a liberal Democrat?}
+The probability that a randomly chosen respondent believes the earth is warming given that he is a liberal Democrat is 0.9.
+<<Question3217c>>=
+####(c) Pr(Earth is Warming|LD) = Pr(Earth is warming & LD)/Pr(LD)
+Pr.EWconLD <- 0.18/0.20
+Pr.EWconLD
+@
+
+\subsubsection{d. What is the probability that a randomly chosen respondent believes the earth is warming given that he is a conservative Republican?}
+<<Question3217d>>=
+####(d) Pr(Earth is Warming|CR) = Pr(Earth is warming & CR)/P(CR)
+Pr.EWconCR <- 0.11/0.33
+Pr.EWconCR
+@
+\subsubsection{e. Does it appear that whether or not a respondent believes the earth is warming is independent of their party and ideology? Explain your reasoning.}
+Earth is warming and party ideology are not independent as the probability of EWconLD and the probability of EWconCR are not equal
+\subsubsection{f. What is the probability that a randomly chosen respondent is a moderate/liberal Republican given that he does not believe that the earth is warming?}
+<<Question3217f>>=
+####(f) Pr(moderate/liber Repulbic|Earth is not warning) = Pr(Earth is not warming and moderate/LR)
+Pr.Mod.LRconNotW <- 0.06/0.34
+Pr.Mod.LRconNotW
+@
+
+\subsection{Exercise2.35 Hearts win. In a new card game, you start with a well- shu???ed full deck and draw 3 cards without replacement. If you draw 3 hearts, you win 50 dollars. If you draw 3 black cards, you win 25 dollars.  For any other draws, you win nothing.}
+\subsubsection{a. Create a probability model for the amount you win at this game, and find the expected winnings.}
+<<Question3235a>>=
+#Probablity model
+prob.model <- data.frame("x" = c(0, 25, 50), 
+                         "P(X = x)" = c(739/850, 2/17, 11/850))
+#The expected winnings
+exp.w <- 0*(739/850) + 25*(2/17) + 50*(11/850)
+@
+\subsubsection{c. If the game costs 5 dollars to play, should you play this game? Explain.}
+No, I don't paly this goame. According to the expected winnings, I am expected to lose the game.
+
+\end{document}
